@@ -77,7 +77,7 @@ Goal: a runnable, configured project that can talk to Neo4j, OpenAI and LangSmit
 
 Goal: ask a question and get a cited answer from plain vector RAG, traced in LangSmith.
 
-- [ ] **1.1 Company list + EDGAR basics**
+- [x] **1.1 Company list + EDGAR basics**
   - Learn: EDGAR, CIK, form types (10-K vs 20-F), SEC fair-access rules.
   - Add deps: `edgartools`.
   - Files: `src/sec_graphrag/companies.py`.
