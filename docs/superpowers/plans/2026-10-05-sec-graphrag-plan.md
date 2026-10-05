@@ -110,7 +110,7 @@ Goal: ask a question and get a cited answer from plain vector RAG, traced in Lan
   - Files: `ingest/embed.py`, `graph/constraints.py`, `cli.py` (`build --vector`).
   - Verify: every `Chunk` has an embedding; raw vector query returns plausible chunks.
 
-- [ ] **1.7 Retriever interface + vector retriever**
+- [x] **1.7 Retriever interface + vector retriever**
   - Learn: LangChain `Neo4jVector`, retriever abstraction, our `RetrievalResult`/`Source` types,
     metadata filters.
   - Add deps: `langchain-neo4j`.

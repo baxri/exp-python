@@ -5,19 +5,12 @@ from typing import Annotated
 
 import typer
 
+from sec_graphrag.retrieval.base import Strategy
+
 app = typer.Typer(
     help="GraphRAG Q&A over semiconductor 10-K filings.",
     no_args_is_help=True,
 )
-
-
-class Strategy(StrEnum):
-    """How a question is answered. `auto` lets the router agent decide."""
-
-    vector = "vector"
-    cypher = "cypher"
-    hybrid = "hybrid"
-    auto = "auto"
 
 
 class Subset(StrEnum):
