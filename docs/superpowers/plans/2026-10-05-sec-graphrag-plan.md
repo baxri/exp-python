@@ -39,7 +39,7 @@ Goal: a runnable, configured project that can talk to Neo4j, OpenAI and LangSmit
   - Verify: `uv run python -c "from sec_graphrag.config import get_settings; print(get_settings())"`
     shows values with secrets masked.
 
-- [ ] **0.3 CLI skeleton**
+- [x] **0.3 CLI skeleton**
   - Learn: Typer commands/options/help, pointing the entry point at a Typer app.
   - Add deps: `typer`.
   - Files: `src/sec_graphrag/cli.py`, update `[project.scripts]`.

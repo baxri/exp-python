@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from sec-graphrag!")
+"""GraphRAG Q&A over semiconductor 10-K filings."""

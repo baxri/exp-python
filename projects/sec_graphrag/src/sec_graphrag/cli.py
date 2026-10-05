@@ -1,0 +1,101 @@
+"""Command-line interface: `sec-graphrag <command>`."""
+
+from enum import StrEnum
+from typing import Annotated
+
+import typer
+
+app = typer.Typer(
+    help="GraphRAG Q&A over semiconductor 10-K filings.",
+    no_args_is_help=True,
+)
+
+
+class Strategy(StrEnum):
+    """How a question is answered. `auto` lets the router agent decide."""
+
+    vector = "vector"
+    cypher = "cypher"
+    hybrid = "hybrid"
+    auto = "auto"
+
+
+class Subset(StrEnum):
+    ci = "ci"
+    full = "full"
+
+
+def _todo(step: str) -> None:
+    typer.secho(f"Not implemented yet — see plan step {step}.", fg=typer.colors.YELLOW)
+    raise typer.Exit(code=1)
+
+
+@app.command()
+def doctor() -> None:
+    """Check connectivity to Neo4j, OpenAI and LangSmith."""
+    _todo("0.5")
+
+
+@app.command()
+def fetch(
+    tickers: Annotated[
+        list[str] | None,
+        typer.Argument(help="Tickers to fetch. Default: all companies."),
+    ] = None,
+    force: Annotated[bool, typer.Option(help="Re-download even if cached.")] = False,
+) -> None:
+    """Download 10-K items 1, 1A and 7 from SEC EDGAR into the local cache."""
+    _todo("1.3")
+
+
+@app.command()
+def build(
+    vector: Annotated[
+        bool, typer.Option("--vector", help="Chunk, embed and index filings.")
+    ] = False,
+    graph: Annotated[
+        bool, typer.Option("--graph", help="Extract entities and relationships.")
+    ] = False,
+) -> None:
+    """Load cached filings into Neo4j."""
+    if not (vector or graph):
+        raise typer.BadParameter("Pass --vector, --graph or both.")
+    _todo("1.6" if vector else "M3")
+
+
+@app.command()
+def ask(
+    question: Annotated[str, typer.Argument(help="The question to answer.")],
+    strategy: Annotated[
+        Strategy, typer.Option(help="Retrieval strategy.")
+    ] = Strategy.auto,
+) -> None:
+    """Answer a question about the filings, with citations."""
+    _todo("1.9")
+
+
+@app.command(name="eval")
+def eval_(
+    strategy: Annotated[
+        Strategy, typer.Option(help="Strategy to evaluate.")
+    ] = Strategy.auto,
+    subset: Annotated[Subset, typer.Option(help="Dataset split to run.")] = Subset.full,
+) -> None:
+    """Run a LangSmith evaluation experiment."""
+    _todo("2.7")
+
+
+@app.command()
+def report() -> None:
+    """Summarize cost and latency per strategy from LangSmith runs."""
+    _todo("M7")
+
+
+@app.command()
+def wipe(
+    yes: Annotated[
+        bool, typer.Option("--yes", "-y", help="Skip the confirmation prompt.")
+    ] = False,
+) -> None:
+    """Delete all project data (:SEC nodes) from Neo4j."""
+    _todo("0.6")
