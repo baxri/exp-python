@@ -170,6 +170,15 @@ Each stage caches to disk, is idempotent (`MERGE`), and can be rerun without rep
 
 Size (measured after fetch): ~641k words ≈ 850k tokens ≈ 1k chunks; entity nodes estimated 5–15k — well within Aura Free limits (~200k nodes / 400k rels).
 
+Keeping Neo4j in sync with the source (`build --vector` is safe to re-run):
+- chunk settings/code changed → `build --vector` (stale chunks deleted, changed text re-embedded only)
+- new 10-K published or cleaning changed → `fetch --force [TICKER]`, then `build --vector`
+  (each filer keeps only its latest filing; older filings and their chunks are deleted)
+- company removed from `FILERS` → `build --vector` deletes its filings/chunks and marks it
+  `is_filer = false` (the node stays, as other filings may mention it)
+- embedding model changed → deliberate manual step: clear embeddings (and recreate the vector
+  index if the dimensions differ), then `build --vector`
+
 Special case: Intel's 10-K uses a cross-reference index instead of Item sections, so its whole document is kept as one `Full` section (`Filer.full_text`). Every other filing is validated to have Items 1, 1A and 7 with at least 1,000 words each; a failing filing is reported, never cached.
 
 ## 5. Retrieval and agent

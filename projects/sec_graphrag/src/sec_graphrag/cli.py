@@ -118,19 +118,25 @@ def build(
 
     from sec_graphrag.companies import FILERS
     from sec_graphrag.graph.constraints import create_constraints
-    from sec_graphrag.graph.load import load_filing
+    from sec_graphrag.graph.load import load_filing, retire_removed_filers
     from sec_graphrag.ingest.chunk import chunk_filing
     from sec_graphrag.ingest.fetch import fetch_filing
 
     create_constraints()  # cheap and idempotent: never load without them
     total = 0
+    ciks = []
     for filer in FILERS:
         doc = fetch_filing(filer.ticker)  # from the cache (downloads if missing)
         chunks = chunk_filing(doc)
         load_filing(doc, chunks)
         total += len(chunks)
+        ciks.append(doc.cik)
         typer.echo(f"  {filer.ticker:<5} {len(chunks):>4} chunks")
     typer.secho(f"Loaded {len(FILERS)} filings, {total} chunks.", fg=typer.colors.GREEN)
+
+    # Companies removed from FILERS lose their filings and chunks.
+    if retired := retire_removed_filers(ciks):
+        typer.echo(f"No longer filers (filings removed): {', '.join(retired)}")
 
     from sec_graphrag.ingest.embed import count_missing, embed_missing_chunks
 

@@ -16,10 +16,35 @@ from sec_graphrag.ingest.fetch import FilingDoc
 
 
 def load_filing(doc: FilingDoc, chunks: list[Chunk]) -> None:
-    """Create or update one company, its filing and all of its chunks."""
+    """Create or update one company, its filing and all of its chunks.
+
+    Afterwards the database holds exactly this filing for the company: chunks
+    that chunking no longer produces, and older filings, are removed.
+    """
     _merge_company_and_filing(doc)
     _merge_chunks(doc.accession_no, chunks)
     _delete_stale_chunks(doc.accession_no, [c.id for c in chunks])
+    _delete_other_filings(doc.cik, doc.accession_no)
+
+
+def retire_removed_filers(current_ciks: list[int]) -> list[str]:
+    """Handle companies that were removed from FILERS. Returns their tickers.
+
+    Their filings and chunks are deleted, but the Company node is KEPT and marked
+    is_filer = false: other companies' text may still mention it (from M3 on),
+    and deleting the node would destroy those relationships.
+    """
+    rows = run_write(
+        "MATCH (c:SEC:Company {is_filer: true}) WHERE NOT c.cik IN $current_ciks "
+        "OPTIONAL MATCH (c)-[:FILED]->(f:Filing) "
+        "OPTIONAL MATCH (f)-[:HAS_CHUNK]->(ch:Chunk) "
+        "DETACH DELETE ch, f "
+        "WITH DISTINCT c "
+        "SET c.is_filer = false "
+        "RETURN c.ticker AS ticker",
+        current_ciks=current_ciks,
+    )
+    return [row["ticker"] for row in rows]
 
 
 def _merge_company_and_filing(doc: FilingDoc) -> None:
@@ -76,4 +101,21 @@ def _delete_stale_chunks(accession_no: str, current_ids: list[str]) -> None:
         "DETACH DELETE ch",
         accession_no=accession_no,
         current_ids=current_ids,
+    )
+
+
+def _delete_other_filings(cik: int, accession_no: str) -> None:
+    """Remove the company's older filings (and their chunks).
+
+    A new 10-K has a new accession number, so it becomes a NEW Filing node. We
+    keep only the latest filing per company, so the old one must go; otherwise
+    searches would mix last year's text with this year's.
+    """
+    run_write(
+        "MATCH (:SEC:Company {cik: $cik})-[:FILED]->(f:Filing) "
+        "WHERE f.accession_no <> $accession_no "
+        "OPTIONAL MATCH (f)-[:HAS_CHUNK]->(ch:Chunk) "
+        "DETACH DELETE ch, f",
+        cik=cik,
+        accession_no=accession_no,
     )
