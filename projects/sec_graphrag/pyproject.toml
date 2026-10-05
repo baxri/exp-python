@@ -25,3 +25,11 @@ build-backend = "uv_build"
 [tool.ruff]
 # Our package lives in src/; lets ruff classify `sec_graphrag` imports as first-party.
 src = ["src"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

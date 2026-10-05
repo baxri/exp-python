@@ -22,7 +22,7 @@ them, because results from earlier milestones (e.g. extraction quality) will sha
 
 ---
 
-## M0 — Scaffold
+## M0 — Scaffold ✅
 
 Goal: a runnable, configured project that can talk to Neo4j, OpenAI and LangSmith.
 
@@ -67,10 +67,10 @@ Goal: a runnable, configured project that can talk to Neo4j, OpenAI and LangSmit
   - Files: `graph/constraints.py`, `db.py` (`run_auto_commit`), `cli.py`. (`graph/schema.py` deferred to M3, where extraction first needs it.)
   - Verify: `sec-graphrag init-db` twice (second run is a no-op); `SHOW CONSTRAINTS` in Aura.
 
-- [ ] **0.7 Testing setup**
+- [x] **0.7 Testing setup**
   - Learn: pytest layout, fixtures, testing pure functions without network.
   - Add dev deps: `pytest`.
-  - Files: `tests/test_config.py`, `tests/test_schema.py`.
+  - Files: `tests/conftest.py`, `tests/test_config.py`, `tests/test_tracing.py`, `tests/test_constraints.py`.
   - Verify: `uv run pytest` green.
 
 ## M1 — Fetch + vector baseline
