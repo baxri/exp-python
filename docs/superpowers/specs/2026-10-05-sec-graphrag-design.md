@@ -168,7 +168,9 @@ Each stage caches to disk, is idempotent (`MERGE`), and can be rerun without rep
    then a quality report: counts per label/type, top-20 most-connected companies, duplicate
    candidates.
 
-Size estimate: ~5k chunks, 20–40k entity nodes — within Aura Free limits (~200k nodes / 400k rels).
+Size (measured after fetch): ~641k words ≈ 850k tokens ≈ 1k chunks; entity nodes estimated 5–15k — well within Aura Free limits (~200k nodes / 400k rels).
+
+Special case: Intel's 10-K uses a cross-reference index instead of Item sections, so its whole document is kept as one `Full` section (`Filer.full_text`). Every other filing is validated to have Items 1, 1A and 7 with at least 1,000 words each; a failing filing is reported, never cached.
 
 ## 5. Retrieval and agent
 

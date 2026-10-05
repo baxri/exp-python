@@ -88,10 +88,10 @@ Goal: ask a question and get a cited answer from plain vector RAG, traced in Lan
   - Files: `src/sec_graphrag/ingest/fetch.py`, `.gitignore` for `data/`.
   - Verify: NVDA's cached JSON exists; item lengths look sensible.
 
-- [ ] **1.3 Fetch all + `fetch` command**
+- [x] **1.3 Fetch all + `fetch` command**
   - Learn: skip-if-cached, per-ticker error handling and a summary report.
-  - Files: `ingest/fetch.py`, `cli.py`, `notebooks/01_explore_filings.ipynb`.
-  - Verify: `sec-graphrag fetch` summary; notebook shows text sizes per company/item.
+  - Files: `ingest/fetch.py`, `cli.py`, `companies.py` (`full_text` flag for Intel). Notebook moved to M3.
+  - Verify: `sec-graphrag fetch` summary. Result: 22/22, ~641k words (~1k chunks); Intel kept as full text.
 
 - [ ] **1.4 Chunking**
   - Learn: chunk size/overlap trade-offs, token-based length with `tiktoken`, metadata on chunks.

@@ -1,7 +1,10 @@
 """Download 10-K sections from SEC EDGAR and cache them as JSON."""
 
 import re
+from collections.abc import Iterable, Iterator
+from dataclasses import dataclass
 from datetime import date
+from enum import StrEnum
 from pathlib import Path
 
 from edgar import Company, set_identity
@@ -12,6 +15,30 @@ from sec_graphrag.config import get_settings
 
 # The 10-K sections we keep: Business, Risk Factors, MD&A.
 ITEMS = ("Item 1", "Item 1A", "Item 7")
+# Section name used when a filer's whole document is kept (see Filer.full_text).
+FULL_TEXT = "Full"
+
+# Real sections run to thousands of words (the shortest seen is ~2,300). Anything
+# below this means parsing failed, e.g. a filing that uses a cross-reference index.
+MIN_SECTION_WORDS = 1000
+
+
+class SectionError(ValueError):
+    """A required 10-K section is missing or too short to be real."""
+
+
+def check_sections(items: dict[str, str]) -> None:
+    """Raise SectionError naming every section that is missing or too short."""
+    problems = [
+        f"{item} ({len(text.split())} words)"
+        for item, text in items.items()
+        if len(text.split()) < MIN_SECTION_WORDS
+    ]
+    if problems:
+        raise SectionError(
+            f"sections missing or too short: {', '.join(problems)} "
+            f"(minimum {MIN_SECTION_WORDS} words)"
+        )
 
 
 class FilingDoc(BaseModel):
@@ -25,7 +52,7 @@ class FilingDoc(BaseModel):
     accession_no: str
     filing_date: date
     period_of_report: date
-    items: dict[str, str]  # e.g. {"Item 1A": "Item 1A. Risk Factors ..."}
+    items: dict[str, str]  # {"Item 1A": "..."} or {"Full": "..."} for full_text
 
 
 def raw_path(ticker: str) -> Path:
@@ -54,6 +81,39 @@ def fetch_filing(ticker: str, *, force: bool = False) -> FilingDoc:
     return doc
 
 
+class FetchStatus(StrEnum):
+    downloaded = "downloaded"
+    cached = "cached"
+    failed = "failed"
+
+
+@dataclass
+class FetchResult:
+    ticker: str
+    status: FetchStatus
+    doc: FilingDoc | None = None
+    error: str = ""
+
+
+def fetch_many(tickers: Iterable[str], *, force: bool = False) -> Iterator[FetchResult]:
+    """Fetch filings one by one, yielding a result as each finishes.
+
+    A failure is reported and the loop continues, so one bad company never loses
+    the others. Sequential on purpose: SEC allows ~10 requests per second.
+    """
+    for ticker in tickers:
+        was_cached = raw_path(ticker).exists() and not force
+        try:
+            doc = fetch_filing(ticker, force=force)
+        except Exception as e:  # noqa: BLE001 — report any failure, keep going
+            yield FetchResult(
+                ticker, FetchStatus.failed, error=f"{type(e).__name__}: {e}"
+            )
+            continue
+        status = FetchStatus.cached if was_cached else FetchStatus.downloaded
+        yield FetchResult(ticker, status, doc=doc)
+
+
 def _download(ticker: str) -> FilingDoc:
     filer = get_filer(ticker)
     identity = get_settings().edgar_identity
@@ -65,7 +125,12 @@ def _download(ticker: str) -> FilingDoc:
     filing = company.get_filings(form="10-K", amendments=False).latest()
     if filing is None:
         raise LookupError(f"No 10-K found for {filer.ticker}")
-    tenk = filing.obj()
+    if filer.full_text:
+        items = {FULL_TEXT: clean_text(filing.text())}
+    else:
+        tenk = filing.obj()
+        items = {item: clean_text(tenk[item] or "") for item in ITEMS}
+    check_sections(items)  # fail loudly rather than cache a broken filing
 
     return FilingDoc(
         ticker=filer.ticker,
@@ -76,5 +141,5 @@ def _download(ticker: str) -> FilingDoc:
         accession_no=filing.accession_no,
         filing_date=filing.filing_date,
         period_of_report=filing.period_of_report,
-        items={item: clean_text(tenk[item] or "") for item in ITEMS},
+        items=items,
     )

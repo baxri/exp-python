@@ -18,6 +18,9 @@ class Segment(StrEnum):
 class Filer:
     ticker: str
     segment: Segment
+    # True for 10-Ks laid out with a cross-reference index instead of Item
+    # sections; we then keep the whole document as one "Full" section.
+    full_text: bool = False
 
 
 FILERS: list[Filer] = [
@@ -27,7 +30,7 @@ FILERS: list[Filer] = [
     Filer("AVGO", Segment.fabless),
     Filer("MRVL", Segment.fabless),
     Filer("MPWR", Segment.fabless),
-    Filer("INTC", Segment.idm),
+    Filer("INTC", Segment.idm, full_text=True),
     Filer("TXN", Segment.idm),
     Filer("MU", Segment.idm),
     Filer("ADI", Segment.idm),

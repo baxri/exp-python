@@ -68,7 +68,37 @@ def fetch(
     force: Annotated[bool, typer.Option(help="Re-download even if cached.")] = False,
 ) -> None:
     """Download 10-K items 1, 1A and 7 from SEC EDGAR into the local cache."""
-    _todo("1.3")
+    from sec_graphrag.companies import FILERS, get_filer
+    from sec_graphrag.ingest.fetch import FetchStatus, fetch_many
+
+    # Validate every ticker before downloading anything.
+    try:
+        selected = [get_filer(t).ticker for t in tickers] if tickers else None
+    except KeyError as e:
+        raise typer.BadParameter(str(e)) from e
+    selected = selected or [f.ticker for f in FILERS]
+
+    icons = {
+        FetchStatus.downloaded: "⬇️ ",
+        FetchStatus.cached: "💾",
+        FetchStatus.failed: "❌",
+    }
+    counts = dict.fromkeys(FetchStatus, 0)
+    for result in fetch_many(selected, force=force):
+        counts[result.status] += 1
+        if result.doc:
+            words = sum(len(text.split()) for text in result.doc.items.values())
+            detail = f"{result.doc.period_of_report}  {words:>7,} words"
+        else:
+            detail = result.error
+        typer.echo(f"{icons[result.status]} {result.ticker:<5} {detail}")
+
+    typer.echo(
+        f"\n{counts[FetchStatus.downloaded]} downloaded, "
+        f"{counts[FetchStatus.cached]} cached, {counts[FetchStatus.failed]} failed"
+    )
+    if counts[FetchStatus.failed]:
+        raise typer.Exit(code=1)
 
 
 @app.command()
