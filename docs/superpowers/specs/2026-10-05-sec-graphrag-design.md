@@ -152,7 +152,7 @@ entity `name` properties (used for entity linking).
 Each stage caches to disk, is idempotent (`MERGE`), and can be rerun without repeating LLM spend.
 
 1. **Fetch** — `edgartools` gets the latest 10-K per filer and extracts Items 1, 1A, 7 →
-   `data/raw/{ticker}_{fy}.json` with CIK, accession no., fiscal year.
+   `data/raw/{ticker}.json` (latest 10-K only) with CIK, accession no., filing date and `period_of_report` (fiscal years differ per company).
    Filers (to be verified as 10-K filers during implementation): NVDA, AMD, INTC, QCOM, AVGO,
    TXN, MU, ADI, MRVL, NXPI, ON, MCHP, AMAT, LRCX, KLAC, TER, ENTG, SWKS, QRVO, MPWR, WOLF, AAPL.
    TSMC, ASML, Samsung etc. are not 10-K filers; they appear as non-filer `Company` nodes.

@@ -83,7 +83,7 @@ Goal: ask a question and get a cited answer from plain vector RAG, traced in Lan
   - Files: `src/sec_graphrag/companies.py`.
   - Verify: script confirms each ticker has a recent 10-K; drop any that don't.
 
-- [ ] **1.2 Fetch one filing**
+- [x] **1.2 Fetch one filing**
   - Learn: extracting Items 1/1A/7, a `FilingDoc` pydantic model, JSON caching to `data/raw/`.
   - Files: `src/sec_graphrag/ingest/fetch.py`, `.gitignore` for `data/`.
   - Verify: NVDA's cached JSON exists; item lengths look sensible.
