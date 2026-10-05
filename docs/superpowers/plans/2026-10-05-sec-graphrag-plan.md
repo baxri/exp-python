@@ -52,7 +52,7 @@ Goal: a runnable, configured project that can talk to Neo4j, OpenAI and LangSmit
   - Files: `src/sec_graphrag/db.py`.
   - Verify: a one-line script runs `RETURN 1` against Aura.
 
-- [ ] **0.5 `doctor` command + LangSmith setup**
+- [x] **0.5 `doctor` command + LangSmith setup**
   - Learn: how LangSmith tracing is switched on by environment variables, a first traced LLM
     call, projects in the LangSmith UI.
   - Add deps: `langchain-openai`, `langsmith`.
@@ -194,7 +194,7 @@ fallback, forced-strategy mode, span metadata, `auto` experiment vs all three.
 
 ## M7 — Production extras (detail when reached)
 
-`report` command (cost/latency from `list_runs`), CLI feedback via `create_feedback`,
+`report` command (cost/latency from `client.runs.query()`; `list_runs` is deprecated), CLI feedback via `create_feedback`,
 promoting thumbs-down runs to the dataset, CI workflow + `baseline.json` + `eval set-baseline`.
 
 ## M8 — README (detail when reached)

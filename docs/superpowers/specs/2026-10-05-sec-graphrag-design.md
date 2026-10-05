@@ -260,7 +260,7 @@ against Aura. Baseline changes only via `eval set-baseline`.
 
 ### Cost/latency report
 
-`report` uses `Client.list_runs()` on root runs in the Q&A project, grouped by `strategy`
+`report` uses `client.runs.query()` (the replacement for the deprecated `list_runs()`) on root runs in the Q&A project, grouped by `strategy`
 metadata: run count, p50/p95 latency, mean tokens, mean cost, error rate, mean Cypher retries;
 plus a per-node breakdown. Outputs Markdown (`reports/`) and CSV.
 

@@ -33,7 +33,19 @@ def _todo(step: str) -> None:
 @app.command()
 def doctor() -> None:
     """Check connectivity to Neo4j, OpenAI and LangSmith."""
-    _todo("0.5")
+    # Imported here, not at the top: LangChain is slow to import, and other
+    # commands (and --help) shouldn't pay for it.
+    from sec_graphrag.config import get_settings
+    from sec_graphrag.doctor import Status, run_checks
+    from sec_graphrag.tracing import configure_langsmith
+
+    configure_langsmith(get_settings())
+    icons = {Status.ok: "✅", Status.warn: "⚠️ ", Status.fail: "❌"}
+    results = run_checks()
+    for r in results:
+        typer.echo(f"{icons[r.status]} {r.name:<18} {r.detail}")
+    if any(r.status is Status.fail for r in results):
+        raise typer.Exit(code=1)
 
 
 @app.command()
