@@ -31,7 +31,7 @@ Goal: a runnable, configured project that can talk to Neo4j, OpenAI and LangSmit
   - Files: `projects/sec_graphrag/pyproject.toml`, `src/sec_graphrag/__init__.py`, root `pyproject.toml`.
   - Verify: `uv run sec-graphrag` prints a greeting.
 
-- [ ] **0.2 Typed configuration**
+- [x] **0.2 Typed configuration**
   - Learn: `pydantic-settings`, reading `.env`, `SecretStr` to keep secrets out of logs, nested
     defaults for model names.
   - Add deps: `pydantic-settings`.

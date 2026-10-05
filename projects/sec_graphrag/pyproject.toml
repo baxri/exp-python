@@ -7,7 +7,9 @@ authors = [
     { email = "giorgi.bibilashvili89@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic-settings>=2.15.0",
+]
 
 [project.scripts]
 sec-graphrag = "sec_graphrag:main"

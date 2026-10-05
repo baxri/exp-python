@@ -1097,6 +1097,12 @@ wheels = [
 name = "sec-graphrag"
 version = "0.1.0"
 source = { editable = "projects/sec_graphrag" }
+dependencies = [
+    { name = "pydantic-settings" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic-settings", specifier = ">=2.15.0" }]
 
 [[package]]
 name = "six"
