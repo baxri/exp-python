@@ -48,6 +48,17 @@ def doctor() -> None:
         raise typer.Exit(code=1)
 
 
+@app.command(name="init-db")
+def init_db() -> None:
+    """Create Neo4j constraints and indexes (safe to run repeatedly)."""
+    from sec_graphrag.graph.constraints import create_constraints, list_constraints
+
+    create_constraints()
+    for c in list_constraints():
+        typer.echo(f"  {c['name']:<22} {c['label']}.{c['property']} IS UNIQUE")
+    typer.secho("Schema ready.", fg=typer.colors.GREEN)
+
+
 @app.command()
 def fetch(
     tickers: Annotated[
@@ -109,5 +120,15 @@ def wipe(
         bool, typer.Option("--yes", "-y", help="Skip the confirmation prompt.")
     ] = False,
 ) -> None:
-    """Delete all project data (:SEC nodes) from Neo4j."""
-    _todo("0.6")
+    """Delete all project data (:SEC nodes) from Neo4j. Constraints are kept."""
+    from sec_graphrag.graph.constraints import count_project_nodes, wipe_project_data
+
+    count = count_project_nodes()
+    if count == 0:
+        typer.echo("Nothing to delete: no :SEC nodes.")
+        return
+    if not yes:
+        # abort=True exits with code 1 when the answer is no.
+        typer.confirm(f"Delete {count} :SEC nodes and their relationships?", abort=True)
+    deleted = wipe_project_data()
+    typer.secho(f"Deleted {deleted} nodes.", fg=typer.colors.GREEN)

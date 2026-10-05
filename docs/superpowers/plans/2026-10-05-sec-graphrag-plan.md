@@ -61,10 +61,10 @@ Goal: a runnable, configured project that can talk to Neo4j, OpenAI and LangSmit
   - Verify: `uv run sec-graphrag doctor` shows ✅ for Neo4j, OpenAI, LangSmith; the trace appears
     in LangSmith.
 
-- [ ] **0.6 Schema constraints + `wipe`**
+- [x] **0.6 Schema constraints + `init-db` + `wipe`**
   - Learn: Cypher constraints and indexes, `IF NOT EXISTS` for idempotency, the `:SEC` namespace
     label, safe destructive commands (confirmation prompt).
-  - Files: `src/sec_graphrag/graph/schema.py`, `graph/constraints.py`, `cli.py`.
+  - Files: `graph/constraints.py`, `db.py` (`run_auto_commit`), `cli.py`. (`graph/schema.py` deferred to M3, where extraction first needs it.)
   - Verify: `sec-graphrag init-db` twice (second run is a no-op); `SHOW CONSTRAINTS` in Aura.
 
 - [ ] **0.7 Testing setup**

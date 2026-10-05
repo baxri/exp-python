@@ -32,6 +32,16 @@ def run_write(query: LiteralString, **params: Any) -> list[dict[str, Any]]:
     return _run(query, params, RoutingControl.WRITE)
 
 
+def run_auto_commit(query: LiteralString, **params: Any) -> list[dict[str, Any]]:
+    """Run a query in an auto-commit transaction (no automatic retries).
+
+    Needed for `CALL { ... } IN TRANSACTIONS`, which commits in batches itself and
+    therefore cannot run inside a managed transaction.
+    """
+    with get_driver().session(database=get_settings().neo4j_database) as session:
+        return [record.data() for record in session.run(query, params)]
+
+
 def _run(
     query: LiteralString, params: dict[str, Any], routing: RoutingControl
 ) -> list[dict[str, Any]]:
