@@ -113,7 +113,25 @@ def build(
     """Load cached filings into Neo4j."""
     if not (vector or graph):
         raise typer.BadParameter("Pass --vector, --graph or both.")
-    _todo("1.6" if vector else "M3")
+    if graph:
+        _todo("M3")
+
+    from sec_graphrag.companies import FILERS
+    from sec_graphrag.graph.constraints import create_constraints
+    from sec_graphrag.graph.load import load_filing
+    from sec_graphrag.ingest.chunk import chunk_filing
+    from sec_graphrag.ingest.fetch import fetch_filing
+
+    create_constraints()  # cheap and idempotent: never load without them
+    total = 0
+    for filer in FILERS:
+        doc = fetch_filing(filer.ticker)  # from the cache (downloads if missing)
+        chunks = chunk_filing(doc)
+        load_filing(doc, chunks)
+        total += len(chunks)
+        typer.echo(f"  {filer.ticker:<5} {len(chunks):>4} chunks")
+    typer.secho(f"Loaded {len(FILERS)} filings, {total} chunks.", fg=typer.colors.GREEN)
+    typer.echo("Embeddings: not implemented yet — see plan step 1.6.")
 
 
 @app.command()

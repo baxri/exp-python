@@ -99,7 +99,7 @@ Goal: ask a question and get a cited answer from plain vector RAG, traced in Lan
   - Files: `ingest/chunk.py`, `tests/test_chunk.py`.
   - Verify: tests green; chunk counts per company printed.
 
-- [ ] **1.5 Structural graph load**
+- [x] **1.5 Structural graph load**
   - Learn: `MERGE` vs `CREATE`, batching with `UNWIND`, writing `Company`/`Filing`/`Chunk`.
   - Files: `graph/load.py`.
   - Verify: node counts in Aura match chunk counts.
