@@ -48,10 +48,24 @@ CONSTRAINTS: list[LiteralString] = [
 ]
 
 
+# Vector index over chunk embeddings: finds the chunks closest in meaning to a
+# question without comparing against every chunk. The dimensions must equal the
+# embedding model's output size (ingest/embed.py: EMBEDDING_DIMENSIONS).
+# Cosine similarity compares the direction of two vectors: 1 = same meaning.
+VECTOR_INDEX: LiteralString = (
+    "CREATE VECTOR INDEX sec_chunk_embedding IF NOT EXISTS "
+    "FOR (n:Chunk) ON n.embedding "
+    "OPTIONS {indexConfig: {"
+    "`vector.dimensions`: 1536, `vector.similarity_function`: 'cosine'}}"
+)
+VECTOR_INDEX_NAME = "sec_chunk_embedding"
+
+
 def create_constraints() -> None:
-    """Create all constraints; safe to run any number of times."""
+    """Create all constraints and the vector index; safe to run repeatedly."""
     for statement in CONSTRAINTS:
         run_write(statement)
+    run_write(VECTOR_INDEX)
 
 
 def list_constraints() -> list[dict[str, str]]:

@@ -1,6 +1,7 @@
 import re
 
-from sec_graphrag.graph.constraints import CONSTRAINTS
+from sec_graphrag.graph.constraints import CONSTRAINTS, VECTOR_INDEX
+from sec_graphrag.ingest.embed import EMBEDDING_DIMENSIONS
 
 PATTERN = re.compile(
     r"CREATE CONSTRAINT (?P<name>\w+) IF NOT EXISTS "
@@ -39,3 +40,11 @@ def test_every_schema_label_has_a_key() -> None:
         ("Technology", "name"),
         ("Location", "name"),
     }
+
+
+def test_vector_index_matches_embedding_model() -> None:
+    match = re.search(r"`vector.dimensions`: (\d+)", VECTOR_INDEX)
+
+    assert "IF NOT EXISTS" in VECTOR_INDEX
+    assert match is not None
+    assert int(match[1]) == EMBEDDING_DIMENSIONS

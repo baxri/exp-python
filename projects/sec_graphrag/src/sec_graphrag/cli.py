@@ -131,7 +131,16 @@ def build(
         total += len(chunks)
         typer.echo(f"  {filer.ticker:<5} {len(chunks):>4} chunks")
     typer.secho(f"Loaded {len(FILERS)} filings, {total} chunks.", fg=typer.colors.GREEN)
-    typer.echo("Embeddings: not implemented yet — see plan step 1.6.")
+
+    from sec_graphrag.ingest.embed import count_missing, embed_missing_chunks
+
+    missing = count_missing()
+    typer.echo(f"Embedding {missing} chunks without an embedding...")
+    done = 0
+    for batch_size in embed_missing_chunks():
+        done += batch_size
+        typer.echo(f"  {done}/{missing}")
+    typer.secho("Embeddings up to date.", fg=typer.colors.GREEN)
 
 
 @app.command()

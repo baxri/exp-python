@@ -104,7 +104,7 @@ Goal: ask a question and get a cited answer from plain vector RAG, traced in Lan
   - Files: `graph/load.py`.
   - Verify: node counts in Aura match chunk counts.
 
-- [ ] **1.6 Embeddings + vector index**
+- [x] **1.6 Embeddings + vector index**
   - Learn: what embeddings are, dimensions, cosine similarity, batching and cost, Neo4j vector
     indexes.
   - Files: `ingest/embed.py`, `graph/constraints.py`, `cli.py` (`build --vector`).
