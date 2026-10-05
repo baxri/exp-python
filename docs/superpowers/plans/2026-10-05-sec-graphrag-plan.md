@@ -73,7 +73,7 @@ Goal: a runnable, configured project that can talk to Neo4j, OpenAI and LangSmit
   - Files: `tests/conftest.py`, `tests/test_config.py`, `tests/test_tracing.py`, `tests/test_constraints.py`.
   - Verify: `uv run pytest` green.
 
-## M1 — Fetch + vector baseline
+## M1 — Fetch + vector baseline ✅
 
 Goal: ask a question and get a cited answer from plain vector RAG, traced in LangSmith.
 
@@ -122,7 +122,7 @@ Goal: ask a question and get a cited answer from plain vector RAG, traced in Lan
   - Files: `agent/answer.py` (moves into the agent in M6).
   - Verify: cited answer for a sample question.
 
-- [ ] **1.9 `ask` command + tracing**
+- [x] **1.9 `ask` command + tracing**
   - Learn: run names, tags and metadata in LangSmith, reading a trace tree.
   - Files: `cli.py`.
   - Verify: `sec-graphrag ask "..." --strategy vector`; inspect the trace in the UI.
