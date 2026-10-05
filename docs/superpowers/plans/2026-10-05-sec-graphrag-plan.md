@@ -117,7 +117,7 @@ Goal: ask a question and get a cited answer from plain vector RAG, traced in Lan
   - Files: `retrieval/base.py`, `retrieval/vector.py`.
   - Verify: retrieve for a sample question, print sources.
 
-- [ ] **1.8 Answer chain**
+- [x] **1.8 Answer chain**
   - Learn: LCEL (`prompt | llm | parser`), prompt design for citations, formatting context.
   - Files: `agent/answer.py` (moves into the agent in M6).
   - Verify: cited answer for a sample question.
