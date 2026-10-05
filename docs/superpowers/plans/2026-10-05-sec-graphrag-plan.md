@@ -93,7 +93,7 @@ Goal: ask a question and get a cited answer from plain vector RAG, traced in Lan
   - Files: `ingest/fetch.py`, `cli.py`, `companies.py` (`full_text` flag for Intel). Notebook moved to M3.
   - Verify: `sec-graphrag fetch` summary. Result: 22/22, ~641k words (~1k chunks); Intel kept as full text.
 
-- [ ] **1.4 Chunking**
+- [x] **1.4 Chunking**
   - Learn: chunk size/overlap trade-offs, token-based length with `tiktoken`, metadata on chunks.
   - Add deps: `langchain-text-splitters`, `tiktoken`.
   - Files: `ingest/chunk.py`, `tests/test_chunk.py`.
