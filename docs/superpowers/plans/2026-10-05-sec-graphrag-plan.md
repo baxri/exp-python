@@ -45,7 +45,7 @@ Goal: a runnable, configured project that can talk to Neo4j, OpenAI and LangSmit
   - Files: `src/sec_graphrag/cli.py`, update `[project.scripts]`.
   - Verify: `uv run sec-graphrag --help` lists placeholder commands.
 
-- [ ] **0.4 Neo4j connection**
+- [x] **0.4 Neo4j connection**
   - Learn: driver vs session vs transaction, connection pooling, `execute_read` / `execute_write`,
     why one driver per process.
   - Add deps: `neo4j`.

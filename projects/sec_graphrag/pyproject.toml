@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "neo4j>=6.3.1",
     "pydantic-settings>=2.15.0",
     "typer>=0.27.2",
 ]
@@ -18,3 +19,7 @@ sec-graphrag = "sec_graphrag.cli:app"
 [build-system]
 requires = ["uv_build>=0.8.22,<0.9.0"]
 build-backend = "uv_build"
+
+[tool.ruff]
+# Our package lives in src/; lets ruff classify `sec_graphrag` imports as first-party.
+src = ["src"]

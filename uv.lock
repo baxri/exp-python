@@ -1141,12 +1141,14 @@ name = "sec-graphrag"
 version = "0.1.0"
 source = { editable = "projects/sec_graphrag" }
 dependencies = [
+    { name = "neo4j" },
     { name = "pydantic-settings" },
     { name = "typer" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "neo4j", specifier = ">=6.3.1" },
     { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "typer", specifier = ">=0.27.2" },
 ]
