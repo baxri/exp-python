@@ -155,7 +155,7 @@ answered directly but labelled as not from the filings. Fixed pipelines stay for
   - Verify: a company question loops agent → tools → agent → END; a general question goes
     agent → END; the Mermaid diagram of the graph.
 
-- [ ] **A.3 System prompt: grounding rule + citations**
+- [x] **A.3 System prompt: grounding rule + citations**
   - Learn: steering tool use with instructions; the "general knowledge" label; why ungrounded
     answers are the main risk of tool-calling RAG.
   - Files: `agent/graph.py` (prompt).
