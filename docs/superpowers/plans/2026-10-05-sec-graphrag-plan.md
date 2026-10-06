@@ -141,7 +141,7 @@ answered directly but labelled as not from the filings. Fixed pipelines stay for
   - Verify: invoke the tool directly; print its schema; a model with the tool bound returns a
     tool call for a company question and none for a general one.
 
-- [ ] **A.1b Retrieval timing**
+- [x] **A.1b Retrieval timing**
   - Learn: child spans with `@traceable` (`embed_question`, `neo4j_search`); separating
     one-time setup from per-question cost; avoiding a second Aura connection pool.
   - Files: `retrieval/vector.py`.
