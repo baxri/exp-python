@@ -187,6 +187,68 @@ def ask(
     typer.echo(f"\nStrategy: {result.strategy.value}{scope} · {result.seconds}s")
 
 
+@app.command()
+def chat() -> None:
+    """Have a multi-turn conversation with the agent (memory per session)."""
+    from sec_graphrag.config import get_settings
+    from sec_graphrag.tracing import configure_langsmith
+
+    configure_langsmith(get_settings())  # before any LangChain code runs
+
+    from langchain_core.tracers.langchain import wait_for_all_tracers
+
+    from sec_graphrag.agent.chat import ChatSession, Search, Token, TurnDone
+
+    session = ChatSession()
+    typer.echo("Connecting...")
+    session.warm_up()  # pay the ~2-3s Neo4j connection once, not per question
+    typer.secho(
+        "Ask about the 10-K filings of 22 semiconductor companies.\n"
+        "Commands: /new = start a new conversation, /exit = quit.\n",
+        fg=typer.colors.CYAN,
+    )
+    try:
+        while True:
+            try:
+                text = input("You: ").strip()
+            except (EOFError, KeyboardInterrupt):  # Ctrl+D / Ctrl+C
+                typer.echo()
+                break
+            if not text:
+                continue
+            if text in ("/exit", "/quit"):
+                break
+            if text == "/new":
+                session.new_conversation()
+                typer.secho("(new conversation)\n", fg=typer.colors.CYAN)
+                continue
+
+            answering = False
+            for event in session.send(text):
+                if isinstance(event, Search):
+                    args = ", ".join(f"{k}={v!r}" for k, v in event.args.items())
+                    typer.secho(
+                        f"  🔎 {event.tool}({args})", fg=typer.colors.BRIGHT_BLACK
+                    )
+                elif isinstance(event, Token):
+                    if not answering:
+                        typer.secho("Assistant: ", bold=True, nl=False)
+                        answering = True
+                    typer.echo(event.text, nl=False)  # print as it streams in
+                elif isinstance(event, TurnDone):
+                    tickers = sorted({s.ticker for s in event.sources})
+                    found = (
+                        f" · {len(event.sources)} excerpts from {', '.join(tickers)}"
+                        if tickers
+                        else ""
+                    )
+                    typer.secho(
+                        f"\n  ({event.seconds}s{found})\n", fg=typer.colors.BRIGHT_BLACK
+                    )
+    finally:
+        wait_for_all_tracers()  # send traces before the program exits
+
+
 @app.command(name="eval")
 def eval_(
     strategy: Annotated[

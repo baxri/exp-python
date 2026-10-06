@@ -177,7 +177,7 @@ answered directly but labelled as not from the filings. Fixed pipelines stay for
   - Added: hard search budget in code (6 per question) after an ambiguous follow-up
     triggered 46 parallel searches; prompt asks for clarification on unclear references.
 
-- [ ] **A.6 `chat` command**
+- [x] **A.6 `chat` command**
   - Learn: a REPL loop, `/new` and `/exit` commands, streaming output, LangSmith threads
     (`thread_id` metadata groups a session); one-time setup at startup, outside the per-turn
     traces.
@@ -188,7 +188,8 @@ answered directly but labelled as not from the filings. Fixed pipelines stay for
 - [ ] **A.7 Tests for the agent loop**
   - Learn: faking a tool-calling model so the graph's routing is tested without OpenAI.
   - Files: `tests/test_agent.py`.
-  - Verify: tool-call path and direct-answer path both covered; `uv run pytest` green.
+  - Verify: tool-call path, direct-answer path, search budget and chat events (tokens,
+    searches, sources rebuilt from checkpointed dicts) covered; `uv run pytest` green.
 
 ## M2 — Eval set + first experiment
 
