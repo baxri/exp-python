@@ -127,9 +127,71 @@ Goal: ask a question and get a cited answer from plain vector RAG, traced in Lan
   - Files: `cli.py`.
   - Verify: `sec-graphrag ask "..." --strategy vector`; inspect the trace in the UI.
 
+## M1.5 — Chat agent (added 2026-10-06)
+
+Goal: a hand-built LangGraph tool-calling agent behind `ask` (default) and a new multi-turn
+`chat` command. Retrieval becomes a tool the model decides to call; general questions are
+answered directly but labelled as not from the filings. Fixed pipelines stay for evals.
+
+- [ ] **A.1 Retrieval as a tool**
+  - Learn: what a LangChain tool is (`@tool`, name + description + argument schema), how the
+    model "sees" a tool (JSON schema), `bind_tools`, what a tool call looks like in an AIMessage.
+  - Add deps: `langgraph`.
+  - Files: `agent/tools.py` (`search_filings(query, ticker?)`).
+  - Verify: invoke the tool directly; print its schema; a model with the tool bound returns a
+    tool call for a company question and none for a general one.
+
+- [ ] **A.1b Retrieval timing**
+  - Learn: child spans with `@traceable` (`embed_question`, `neo4j_search`); separating
+    one-time setup from per-question cost; avoiding a second Aura connection pool.
+  - Files: `retrieval/vector.py`.
+  - Verify: the `retrieve` span shows its parts; measure `Neo4jVector` setup options vs a query
+    on our shared driver, keep the faster one that still showcases LangChain.
+
+- [ ] **A.2 The agent graph, by hand**
+  - Learn: `StateGraph`, state + `add_messages` reducer, nodes, edges, conditional edges,
+    `ToolNode`, `tools_condition`, the agent loop, compiling, drawing the graph.
+  - Files: `agent/graph.py`.
+  - Verify: a company question loops agent → tools → agent → END; a general question goes
+    agent → END; the Mermaid diagram of the graph.
+
+- [ ] **A.3 System prompt: grounding rule + citations**
+  - Learn: steering tool use with instructions; the "general knowledge" label; why ungrounded
+    answers are the main risk of tool-calling RAG.
+  - Files: `agent/graph.py` (prompt).
+  - Verify: company question → tool + citations; general question → labelled answer;
+    unanswerable question → "not in the filings".
+
+- [ ] **A.4 `ask` runs the agent by default**
+  - Learn: keeping two paths (agent vs fixed pipelines) behind one interface; reading tool calls
+    from the result; agent traces in LangSmith; clean trace inputs/outputs (no object reprs,
+    no tuple outputs).
+  - Files: `agent/qa.py`, `cli.py`.
+  - Verify: `ask "..."` (agent, shows tools used) and `ask "..." --strategy vector` (pipeline).
+
+- [ ] **A.5 Conversation memory**
+  - Learn: checkpointers (`MemorySaver`), `thread_id`, how state persists between turns, why
+    follow-ups ("their risks") need history.
+  - Files: `agent/graph.py`.
+  - Verify: a two-turn conversation in a script where turn 2 depends on turn 1.
+
+- [ ] **A.6 `chat` command**
+  - Learn: a REPL loop, `/new` and `/exit` commands, streaming output, LangSmith threads
+    (`thread_id` metadata groups a session); one-time setup at startup, outside the per-turn
+    traces.
+  - Files: `agent/chat.py`, `cli.py`.
+  - Verify: an interactive session with follow-ups; the session appears as one thread in
+    LangSmith.
+
+- [ ] **A.7 Tests for the agent loop**
+  - Learn: faking a tool-calling model so the graph's routing is tested without OpenAI.
+  - Files: `tests/test_agent.py`.
+  - Verify: tool-call path and direct-answer path both covered; `uv run pytest` green.
+
 ## M2 — Eval set + first experiment
 
-Goal: a reviewed ~60-question dataset in LangSmith and a recorded vector baseline per category.
+Goal: a reviewed ~60-question dataset in LangSmith and recorded baselines per category for the
+vector pipeline and the agent.
 
 - [ ] **2.1 Dataset model + hand-written seed**
   - Learn: what makes a good eval question; the four categories; `EvalExample` pydantic model.
@@ -151,8 +213,9 @@ Goal: a reviewed ~60-question dataset in LangSmith and a recorded vector baselin
   - Files: `evals/sync.py`, `cli.py` (`eval sync`).
   - Verify: dataset visible in LangSmith with both splits.
 
-- [ ] **2.5 Deterministic evaluator**
-  - Learn: evaluator function signature (run outputs vs example reference), `entity_recall`.
+- [ ] **2.5 Deterministic evaluators**
+  - Learn: evaluator function signature (run outputs vs example reference), `entity_recall`,
+    `used_tools` (agent answered a company question only after calling a tool).
   - Files: `evals/evaluators.py`, `tests/test_evaluators.py`.
   - Verify: tests green.
 
@@ -165,7 +228,7 @@ Goal: a reviewed ~60-question dataset in LangSmith and a recorded vector baselin
   - Learn: `langsmith.evaluate`, target functions, experiment metadata, repetitions, the
     comparison view.
   - Files: `evals/run.py`, `cli.py` (`eval`).
-  - Verify: vector experiment in LangSmith; per-category scores printed.
+  - Verify: vector-pipeline and agent experiments in LangSmith; per-category scores printed.
 
 - [ ] **2.8 Record the baseline**
   - Learn: exporting experiment results; starting the README results table.
@@ -180,17 +243,20 @@ Extraction prompt + schema, 2-company trial (cost/quality), full run with cachin
 ## M4 — Text2Cypher (detail when reached)
 
 Few-shot example bank + semantic selector, generation prompt, safety check, `EXPLAIN`
-validation, `CypherQueryCorrector`, retry loop, experiment vs vector.
+validation, `CypherQueryCorrector`, retry loop; exposed as the `query_graph` agent tool and as
+the `cypher` fixed pipeline; experiment vs vector.
 
 ## M5 — Hybrid retriever (detail when reached)
 
 Entity linking with full-text index, neighborhood expansion to triples, context merge and
-trimming, experiment.
+trimming; exposed as the `explore_graph` agent tool and as the `hybrid` fixed pipeline;
+experiment.
 
-## M6 — LangGraph router agent (detail when reached)
+## M6 — Agent hardening (detail when reached; revised 2026-10-06, was "router agent")
 
-State, router with structured output, retriever nodes, Cypher retry loop, `check_context`
-fallback, forced-strategy mode, span metadata, `auto` experiment vs all three.
+Tool descriptions tuned from eval failures, Cypher failure → vector fallback, guardrails
+(recursion limit, max tool calls), span metadata, `auto` (agent) experiment vs all three fixed
+pipelines.
 
 ## M7 — Production extras (detail when reached)
 
