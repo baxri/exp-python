@@ -148,7 +148,7 @@ answered directly but labelled as not from the filings. Fixed pipelines stay for
   - Verify: the `retrieve` span shows its parts; measure `Neo4jVector` setup options vs a query
     on our shared driver, keep the faster one that still showcases LangChain.
 
-- [ ] **A.2 The agent graph, by hand**
+- [x] **A.2 The agent graph, by hand**
   - Learn: `StateGraph`, state + `add_messages` reducer, nodes, edges, conditional edges,
     `ToolNode`, `tools_condition`, the agent loop, compiling, drawing the graph.
   - Files: `agent/graph.py`.
