@@ -162,7 +162,7 @@ answered directly but labelled as not from the filings. Fixed pipelines stay for
   - Verify: company question → tool + citations; general question → labelled answer;
     unanswerable question → "not in the filings".
 
-- [ ] **A.4 `ask` runs the agent by default**
+- [x] **A.4 `ask` runs the agent by default**
   - Learn: keeping two paths (agent vs fixed pipelines) behind one interface; reading tool calls
     from the result; agent traces in LangSmith; clean trace inputs/outputs (no object reprs,
     no tuple outputs).

@@ -54,8 +54,10 @@ matters.
 Searching well:
 - When comparing companies, search once per company using the `ticker` argument.
 - For industry-wide questions, search without a ticker. You may rephrase and search \
-again if results are thin, but make at most 3 searches per question in total. If \
-the answer is still not found, say so and stop; do not keep searching.
+again if results are thin, but make at most 3 searches per question in total.
+- Before concluding that something is not in the filings, try at least one rephrased \
+search (within the limit). If it is still not found, say so and stop; do not offer \
+to search more.
 
 General questions:
 - Questions that are not about specific companies (e.g. "what is a foundry?") may \

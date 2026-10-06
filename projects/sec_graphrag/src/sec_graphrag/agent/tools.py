@@ -29,8 +29,9 @@ def search_filings(query: str, ticker: str | None = None) -> tuple[str, list[Sou
     per company when comparing companies.
 
     Args:
-        query: What to look for, phrased as a search query, e.g.
-            "dependence on third-party foundries".
+        query: What to look for, as a descriptive phrase rather than a single
+            keyword (search works by meaning), e.g. "which foundries manufacture
+            the company's chips" instead of "foundry".
         ticker: Optional stock ticker to search only one company's report. Omit it
             for questions about several companies or the whole industry.
     """

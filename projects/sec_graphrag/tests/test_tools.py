@@ -12,7 +12,7 @@ def test_schema_the_model_sees() -> None:
     assert params["required"] == ["query"]  # ticker is optional
     assert set(params["properties"]) == {"query", "ticker"}
     # Argument descriptions come from the docstring's Args section.
-    assert "search query" in params["properties"]["query"]["description"]
+    assert "descriptive phrase" in params["properties"]["query"]["description"]
     assert "Args:" not in function["description"]
 
 

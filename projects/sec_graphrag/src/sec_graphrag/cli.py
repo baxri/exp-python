@@ -146,10 +146,11 @@ def build(
 def ask(
     question: Annotated[str, typer.Argument(help="The question to answer.")],
     strategy: Annotated[
-        Strategy, typer.Option(help="Retrieval strategy (default becomes auto in M6).")
-    ] = Strategy.vector,
+        Strategy,
+        typer.Option(help="auto = agent picks its searches; others = fixed pipeline."),
+    ] = Strategy.auto,
     ticker: Annotated[
-        str | None, typer.Option(help="Only search this company's filing, e.g. NVDA.")
+        str | None, typer.Option(help="Focus on one company's filing, e.g. NVDA.")
     ] = None,
 ) -> None:
     """Answer a question about the filings, with citations."""
@@ -171,13 +172,18 @@ def ask(
         wait_for_all_tracers()  # send traces before the program exits
 
     typer.echo(f"\n{result.answer}\n")
+    if result.searches:
+        typer.secho("Searches:", bold=True)
+        for search in result.searches:
+            args = ", ".join(f"{k}={v!r}" for k, v in search.args.items())
+            typer.echo(f"  - {search.tool}({args})")
     typer.secho("Sources:", bold=True)
     for i, source in enumerate(result.sources, start=1):
         score = f"  (score {source.score:.3f})" if source.score is not None else ""
         typer.echo(f"  {i}. {source.chunk_id:<15} {source.label}{score}")
     if result.cypher:
         typer.echo(f"\nCypher: {result.cypher}")
-    scope = f", ticker {result.ticker.upper()}" if result.ticker else ""
+    scope = f", ticker {result.ticker}" if result.ticker else ""
     typer.echo(f"\nStrategy: {result.strategy.value}{scope} · {result.seconds}s")
 
 
