@@ -133,7 +133,7 @@ Goal: a hand-built LangGraph tool-calling agent behind `ask` (default) and a new
 `chat` command. Retrieval becomes a tool the model decides to call; general questions are
 answered directly but labelled as not from the filings. Fixed pipelines stay for evals.
 
-- [ ] **A.1 Retrieval as a tool**
+- [x] **A.1 Retrieval as a tool**
   - Learn: what a LangChain tool is (`@tool`, name + description + argument schema), how the
     model "sees" a tool (JSON schema), `bind_tools`, what a tool call looks like in an AIMessage.
   - Add deps: `langgraph`.
