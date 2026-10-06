@@ -169,11 +169,13 @@ answered directly but labelled as not from the filings. Fixed pipelines stay for
   - Files: `agent/qa.py`, `cli.py`.
   - Verify: `ask "..."` (agent, shows tools used) and `ask "..." --strategy vector` (pipeline).
 
-- [ ] **A.5 Conversation memory**
+- [x] **A.5 Conversation memory**
   - Learn: checkpointers (`MemorySaver`), `thread_id`, how state persists between turns, why
     follow-ups ("their risks") need history.
   - Files: `agent/graph.py`.
   - Verify: a two-turn conversation in a script where turn 2 depends on turn 1.
+  - Added: hard search budget in code (6 per question) after an ambiguous follow-up
+    triggered 46 parallel searches; prompt asks for clarification on unclear references.
 
 - [ ] **A.6 `chat` command**
   - Learn: a REPL loop, `/new` and `/exit` commands, streaming output, LangSmith threads
