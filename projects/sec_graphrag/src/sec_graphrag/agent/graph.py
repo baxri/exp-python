@@ -165,7 +165,7 @@ def build_agent(
 def get_agent(memory: bool = False) -> CompiledStateGraph:
     """The agent with the configured OpenAI model (built once per `memory` value).
 
-    memory=False: one-shot questions (`ask`), every invoke starts fresh.
+    memory=False: one-shot questions (evals), every invoke starts fresh.
     memory=True: conversations kept in process memory; every invoke must pass
     config={"configurable": {"thread_id": ...}}.
     """

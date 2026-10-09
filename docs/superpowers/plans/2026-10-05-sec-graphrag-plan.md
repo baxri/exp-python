@@ -129,9 +129,10 @@ Goal: ask a question and get a cited answer from plain vector RAG, traced in Lan
 
 ## M1.5 — Chat agent (added 2026-10-06)
 
-Goal: a hand-built LangGraph tool-calling agent behind `ask` (default) and a new multi-turn
-`chat` command. Retrieval becomes a tool the model decides to call; general questions are
-answered directly but labelled as not from the filings. Fixed pipelines stay for evals.
+Goal: a hand-built LangGraph tool-calling agent behind a multi-turn `chat` command. Retrieval
+becomes a tool the model decides to call; general questions are answered directly but labelled
+as not from the filings. (Revised 2026-10-07: `ask` and the fixed pipelines were removed after
+A.6; evals compare agent tool sets instead.)
 
 - [x] **A.1 Retrieval as a tool**
   - Learn: what a LangChain tool is (`@tool`, name + description + argument schema), how the
@@ -185,6 +186,13 @@ answered directly but labelled as not from the filings. Fixed pipelines stay for
   - Verify: an interactive session with follow-ups; the session appears as one thread in
     LangSmith.
 
+- [x] **A.6b Remove `ask` and the fixed pipelines** (added 2026-10-07)
+  - Why: `chat` covers interactive use; one answering path (the agent) is simpler to maintain
+    and evaluate. Retrieval methods are compared by tool set instead of by pipeline.
+  - Removed: `ask` command, `agent/qa.py`, `agent/answer.py` (LCEL answer chain), the
+    `Strategy` enum, `eval --strategy`, `tests/test_qa.py`, `tests/test_answer.py`.
+  - Verify: `uv run pytest` green; `sec-graphrag --help` lists no `ask`.
+
 - [ ] **A.7 Tests for the agent loop**
   - Learn: faking a tool-calling model so the graph's routing is tested without OpenAI.
   - Files: `tests/test_agent.py`.
@@ -193,8 +201,8 @@ answered directly but labelled as not from the filings. Fixed pipelines stay for
 
 ## M2 — Eval set + first experiment
 
-Goal: a reviewed ~60-question dataset in LangSmith and recorded baselines per category for the
-vector pipeline and the agent.
+Goal: a reviewed ~60-question dataset in LangSmith and a recorded baseline per category for
+the agent with `search_filings` only (tool set `vector`).
 
 - [ ] **2.1 Dataset model + hand-written seed**
   - Learn: what makes a good eval question; the four categories; `EvalExample` pydantic model.
@@ -230,8 +238,9 @@ vector pipeline and the agent.
 - [ ] **2.7 Run the first experiment**
   - Learn: `langsmith.evaluate`, target functions, experiment metadata, repetitions, the
     comparison view.
-  - Files: `evals/run.py`, `cli.py` (`eval`).
-  - Verify: vector-pipeline and agent experiments in LangSmith; per-category scores printed.
+  - Files: `evals/run.py`, `cli.py` (`eval --tools`), `agent/graph.py` (`build_agent(llm,
+    tools=...)` so a tool set can be chosen per experiment).
+  - Verify: `vector` tool-set experiment in LangSmith; per-category scores printed.
 
 - [ ] **2.8 Record the baseline**
   - Learn: exporting experiment results; starting the README results table.
@@ -246,20 +255,20 @@ Extraction prompt + schema, 2-company trial (cost/quality), full run with cachin
 ## M4 — Text2Cypher (detail when reached)
 
 Few-shot example bank + semantic selector, generation prompt, safety check, `EXPLAIN`
-validation, `CypherQueryCorrector`, retry loop; exposed as the `query_graph` agent tool and as
-the `cypher` fixed pipeline; experiment vs vector.
+validation, `CypherQueryCorrector`, retry loop; exposed as the `query_graph` agent tool; `cypher` tool-set experiment
+vs `vector`.
 
 ## M5 — Hybrid retriever (detail when reached)
 
 Entity linking with full-text index, neighborhood expansion to triples, context merge and
-trimming; exposed as the `explore_graph` agent tool and as the `hybrid` fixed pipeline;
+trimming; exposed as the `explore_graph` agent tool; `hybrid` tool-set
 experiment.
 
 ## M6 — Agent hardening (detail when reached; revised 2026-10-06, was "router agent")
 
 Tool descriptions tuned from eval failures, Cypher failure → vector fallback, guardrails
-(recursion limit, max tool calls), span metadata, `auto` (agent) experiment vs all three fixed
-pipelines.
+(recursion limit, max tool calls), span metadata, full-tool-set experiment vs the earlier tool
+sets.
 
 ## M7 — Production extras (detail when reached)
 

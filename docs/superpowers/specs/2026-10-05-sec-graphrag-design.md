@@ -10,9 +10,9 @@ A portfolio project that showcases **GraphRAG, LangChain/LangGraph and LangSmith
 natural-language questions over the 10-K filings of ~22 US-listed semiconductor companies, and
 **proving with LangSmith experiments** where a knowledge graph beats plain vector RAG.
 
-The headline deliverable is a README results table: scores per question category for three
-fixed retrieval pipelines (`vector`, `cypher`, `hybrid`) and the tool-calling agent (`auto`),
-plus a cost/latency table.
+The headline deliverable is a README results table: scores per question category for the
+tool-calling agent with growing tool sets (`vector` = `search_filings` only, then `+cypher`,
+then `+hybrid`), plus a cost/latency table.
 
 ### Decisions made
 
@@ -21,9 +21,9 @@ plus a cost/latency table.
 | Domain | US-listed semiconductor companies, latest 10-K only |
 | 10-K sections | Item 1 (Business), Item 1A (Risk Factors), Item 7 (MD&A) |
 | LLM provider | OpenAI (chat + `text-embedding-3-small`) |
-| Interface | CLI (Typer): one-shot `ask` and multi-turn `chat`; Jupyter notebooks; no web UI |
+| Interface | CLI (Typer): multi-turn `chat`; Jupyter notebooks; no web UI (one-shot `ask` removed 2026-10-07) |
 | Graph construction | Fixed schema + LangChain `LLMGraphTransformer` |
-| Answering | Hand-built LangGraph tool-calling agent; each retriever is a tool. Fixed per-strategy pipelines are kept for a fair retrieval comparison (revised 2026-10-06, replacing the router agent) |
+| Answering | Hand-built LangGraph tool-calling agent; each retriever is a tool (revised 2026-10-06, replacing the router agent). Fixed per-strategy pipelines removed 2026-10-07: retrieval methods are compared by evaluating the agent with different tool sets |
 | Off-topic questions | Answered briefly from general knowledge, clearly labelled as not from the filings; company-specific questions must use the tools |
 | Neo4j | Existing Neo4j Aura instance (single database), project data namespaced with `:SEC` label |
 | Build approach | Incremental: vector baseline → chat agent → evals → graph → cypher tool → hybrid tool → agent hardening |
@@ -49,7 +49,6 @@ EDGAR ──(edgartools)──> raw 10-K items (1, 1A, 7) ──> data/raw/*.jso
              (:Chunk {embedding}) ─[:MENTIONS]→ entities ─[rels]→ entities
                                    │
   LangGraph agent: LLM ⇄ tools (search_filings | query_graph | explore_graph) → cited answer
-  fixed pipelines (evals): retrieve with one strategy → answer
                                    │
                LangSmith: traces · datasets · experiments · feedback
 ```
@@ -68,7 +67,7 @@ projects/sec_graphrag/
 │   ├── ingest/               # fetch.py, chunk.py, embed.py, extract.py
 │   ├── graph/                # schema.py, constraints.py, resolve.py, quality.py
 │   ├── retrieval/            # base.py, vector.py, text2cypher.py, hybrid.py
-│   ├── agent/                # answer.py, qa.py (fixed pipelines), tools.py, graph.py (agent), chat.py
+│   ├── agent/                # tools.py, graph.py (agent), chat.py
 │   ├── evals/                # draft.py, sync.py, evaluators.py, run.py, dataset.jsonl, baseline.json
 │   ├── reports/              # cost_latency.py
 │   └── cli.py
@@ -93,9 +92,8 @@ sec-graphrag doctor                 # check Neo4j, OpenAI, LangSmith connectivit
 sec-graphrag fetch                  # download + cache 10-K items
 sec-graphrag build --vector         # chunks + embeddings + vector index
 sec-graphrag build --graph          # extraction + load + entity resolution + quality report
-sec-graphrag ask "..." [--strategy vector|cypher|hybrid|auto] [--ticker T]   # one-shot
 sec-graphrag chat                   # multi-turn conversation with the agent (memory per session)
-sec-graphrag eval [--strategy ...] [--subset ci|full]
+sec-graphrag eval [--tools vector|cypher|hybrid] [--subset ci|full]
 sec-graphrag eval sync              # upload dataset.jsonl to LangSmith
 sec-graphrag eval set-baseline      # explicitly update evals/baseline.json
 sec-graphrag report                 # cost/latency tables from LangSmith runs
@@ -234,15 +232,15 @@ START → agent (LLM with tools bound) ──tool calls?──▶ tools (ToolNod
   `chat` session. LangSmith groups a session's turns as a thread via `thread_id` metadata.
 - Limits: a recursion limit bounds tool-call loops.
 
-Fixed pipelines (`agent/qa.py`) stay: `ask --strategy vector|cypher|hybrid` runs exactly one
-retriever then the answer chain. They give a like-for-like comparison of retrieval methods;
-`--strategy auto` (default from M1.5) runs the agent.
+No fixed pipelines (removed 2026-10-07): every answer goes through the agent. Retrieval methods
+are compared by building the agent with different tool sets (`build_agent(llm, tools=...)`):
+`vector` = `search_filings` only, `cypher` = + `query_graph`, `hybrid` = + `explore_graph`. The
+gain of each set over the previous one shows what the graph tools add.
 
-M6 hardens the agent: tool descriptions, Cypher failure fallback to vector search, guardrails,
-and agent-vs-pipeline comparison.
+M6 hardens the agent: tool descriptions, Cypher failure fallback to vector search, guardrails.
 
-CLI `ask` output: answer, tools used, latency, cost, Cypher (if any), sources, then a feedback
-prompt. `chat` shows the same per turn.
+`chat` output per turn: tools used (live), the streamed answer, latency and sources, then a
+feedback prompt.
 
 ## 6. Evaluation, observability, feedback
 
@@ -273,28 +271,28 @@ hand-checked examples. Latency, tokens and cost come from LangSmith run stats.
 
 ### Experiments
 
-`langsmith.evaluate(target, data="sec-graphrag-qa", evaluators=..., experiment_prefix=<strategy>,
-metadata={strategy, models, git_sha}, num_repetitions=2)` for each fixed pipeline (`vector`,
-`cypher`, `hybrid`) and the agent (`auto`). A script exports per-category score tables to the
-README.
+`langsmith.evaluate(target, data="sec-graphrag-qa", evaluators=..., experiment_prefix=<tools>,
+metadata={tools, models, git_sha}, num_repetitions=2)` for each agent tool set (`vector`,
+`cypher`, `hybrid`). The target runs the agent without memory, one question per run. A script
+exports per-category score tables to the README.
 
 ### CI eval regression
 
 `.github/workflows/sec-graphrag-eval.yml`, triggered on PRs touching `projects/sec_graphrag/**`:
-runs `eval --subset ci --strategy auto`, compares with `evals/baseline.json`, fails if
+runs `eval --subset ci` (full tool set), compares with `evals/baseline.json`, fails if
 `correctness` drops by more than 0.1 or `cypher_ok` falls below its threshold, and writes the
 LangSmith experiment URL to the job summary. Secrets: OpenAI, LangSmith, Neo4j. Read-only
 against Aura. Baseline changes only via `eval set-baseline`.
 
 ### Cost/latency report
 
-`report` uses `client.runs.query()` (the replacement for the deprecated `list_runs()`) on root runs in the Q&A project, grouped by `strategy`
+`report` uses `client.runs.query()` (the replacement for the deprecated `list_runs()`) on root runs in the Q&A project, grouped by `tools`
 metadata: run count, p50/p95 latency, mean tokens, mean cost, error rate, mean Cypher retries;
 plus a per-node breakdown. Outputs Markdown (`reports/`) and CSV.
 
 ### Online feedback
 
-After `ask` and each `chat` turn, prompt `Helpful? [y/n/skip]` + optional comment →
+After each `chat` turn, prompt `Helpful? [y/n/skip]` + optional comment →
 `client.create_feedback(run_id, key="user_helpful", score=1|0, comment=...)`, with `run_id`
 preassigned via run config. Notebook `03` lists negatively rated runs and promotes them into
 `dataset.jsonl` as new eval candidates.
@@ -311,13 +309,13 @@ unit tests.
 | # | Milestone | Done when |
 |---|---|---|
 | M0 | Scaffold: workspace member, config, CLI skeleton, `.env.example`, constraints, `doctor` | `doctor` passes for Neo4j, OpenAI, LangSmith |
-| M1 | Fetch + chunk + embed + `ask --strategy vector` with tracing | Questions answered with citations; traces visible |
-| M1.5 | Hand-built LangGraph agent with `search_filings` tool; `chat` command with memory; `ask` defaults to the agent | Multi-turn chat with follow-ups; tool calls and threads visible in LangSmith |
-| M2 | Eval set drafted/reviewed, synced, evaluators (incl. `used_tools`), `eval` command | Baseline experiments recorded per category: vector pipeline and agent |
+| M1 | Fetch + chunk + embed + vector Q&A with tracing (one-shot `ask`, later removed) | Questions answered with citations; traces visible |
+| M1.5 | Hand-built LangGraph agent with `search_filings` tool; `chat` command with memory; `ask` and fixed pipelines removed | Multi-turn chat with follow-ups; tool calls and threads visible in LangSmith |
+| M2 | Eval set drafted/reviewed, synced, evaluators (incl. `used_tools`), `eval` command | Baseline experiment recorded per category: agent with `search_filings` only |
 | M3 | Extraction (2-company trial, then full), resolution, quality report, notebook `02` | Quality report sane, few duplicates |
-| M4 | Text2Cypher with safety, validation, retries; exposed as `query_graph` tool + fixed pipeline | Cypher experiment recorded vs vector |
-| M5 | Hybrid retriever; exposed as `explore_graph` tool + fixed pipeline | Hybrid experiment recorded |
-| M6 | Agent hardening: tool descriptions, Cypher→vector fallback, guardrails | `auto` (agent) experiment recorded vs all three pipelines |
+| M4 | Text2Cypher with safety, validation, retries; exposed as `query_graph` tool | `cypher` tool-set experiment recorded vs `vector` |
+| M5 | Hybrid retriever; exposed as `explore_graph` tool | `hybrid` tool-set experiment recorded |
+| M6 | Agent hardening: tool descriptions, Cypher→vector fallback, guardrails | Full-tool-set experiment recorded vs earlier tool sets |
 | M7 | `report`, CLI feedback, failure promotion, CI workflow + baseline | A PR with a deliberately broken prompt fails CI |
 | M8 | README: diagram, results, cost/latency, demo GIF, lessons learned | Understandable in 2 minutes |
 
@@ -333,4 +331,4 @@ unit tests.
 | `edgartools` item parsing fails for some filings | Cache raw output; log and skip with a per-ticker report |
 | Cost overrun | Trial run, caching of extraction output, mini model for extraction |
 | Agent answers company questions from training memory (ungrounded) | Grounding rule in system prompt, general-knowledge label, `used_tools` evaluator |
-| Agent results don't isolate which retrieval method helped | Fixed per-strategy pipelines kept and evaluated alongside the agent |
+| Agent results don't isolate which retrieval method helped | Experiments per tool set (each adds one retriever), plus per-tool usage from traces |

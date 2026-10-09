@@ -5,8 +5,6 @@ from typing import Annotated
 
 import typer
 
-from sec_graphrag.retrieval.base import Strategy
-
 app = typer.Typer(
     help="GraphRAG Q&A over semiconductor 10-K filings.",
     no_args_is_help=True,
@@ -143,51 +141,6 @@ def build(
 
 
 @app.command()
-def ask(
-    question: Annotated[str, typer.Argument(help="The question to answer.")],
-    strategy: Annotated[
-        Strategy,
-        typer.Option(help="auto = agent picks its searches; others = fixed pipeline."),
-    ] = Strategy.auto,
-    ticker: Annotated[
-        str | None, typer.Option(help="Focus on one company's filing, e.g. NVDA.")
-    ] = None,
-) -> None:
-    """Answer a question about the filings, with citations."""
-    from sec_graphrag.config import get_settings
-    from sec_graphrag.tracing import configure_langsmith
-
-    configure_langsmith(get_settings())  # before any LangChain code runs
-
-    from langchain_core.tracers.langchain import wait_for_all_tracers
-
-    from sec_graphrag.agent.qa import answer_question
-
-    try:
-        result = answer_question(question, strategy, ticker)
-    except NotImplementedError as e:
-        typer.secho(str(e), fg=typer.colors.YELLOW)
-        raise typer.Exit(code=1) from e
-    finally:
-        wait_for_all_tracers()  # send traces before the program exits
-
-    typer.echo(f"\n{result.answer}\n")
-    if result.searches:
-        typer.secho("Searches:", bold=True)
-        for search in result.searches:
-            args = ", ".join(f"{k}={v!r}" for k, v in search.args.items())
-            typer.echo(f"  - {search.tool}({args})")
-    typer.secho("Sources:", bold=True)
-    for i, source in enumerate(result.sources, start=1):
-        score = f"  (score {source.score:.3f})" if source.score is not None else ""
-        typer.echo(f"  {i}. {source.chunk_id:<15} {source.label}{score}")
-    if result.cypher:
-        typer.echo(f"\nCypher: {result.cypher}")
-    scope = f", ticker {result.ticker}" if result.ticker else ""
-    typer.echo(f"\nStrategy: {result.strategy.value}{scope} · {result.seconds}s")
-
-
-@app.command()
 def chat() -> None:
     """Have a multi-turn conversation with the agent (memory per session)."""
     from sec_graphrag.config import get_settings
@@ -251,9 +204,6 @@ def chat() -> None:
 
 @app.command(name="eval")
 def eval_(
-    strategy: Annotated[
-        Strategy, typer.Option(help="Strategy to evaluate.")
-    ] = Strategy.auto,
     subset: Annotated[Subset, typer.Option(help="Dataset split to run.")] = Subset.full,
 ) -> None:
     """Run a LangSmith evaluation experiment."""
@@ -262,7 +212,7 @@ def eval_(
 
 @app.command()
 def report() -> None:
-    """Summarize cost and latency per strategy from LangSmith runs."""
+    """Summarize cost and latency per experiment from LangSmith runs."""
     _todo("M7")
 
 

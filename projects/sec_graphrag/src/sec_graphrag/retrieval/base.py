@@ -1,24 +1,14 @@
 """Shared types for all retrievers (vector now; Text2Cypher and hybrid later).
 
 Every retriever takes a question and returns a RetrievalResult of the same shape,
-so the answer step, the agent and the evals can use any retriever without
-knowing how it finds its text.
+so each one can be wrapped as an agent tool without the agent knowing how it
+finds its text.
 """
 
 from datetime import date
-from enum import StrEnum
 from typing import Protocol
 
 from pydantic import BaseModel
-
-
-class Strategy(StrEnum):
-    """How a question is answered. `auto` lets the router agent decide (M6)."""
-
-    vector = "vector"
-    cypher = "cypher"
-    hybrid = "hybrid"
-    auto = "auto"
 
 
 class Source(BaseModel):
