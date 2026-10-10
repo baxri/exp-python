@@ -206,7 +206,7 @@ A.6; evals compare agent tool sets instead.)
 Goal: a reviewed ~60-question dataset in LangSmith and a recorded baseline per category for
 the agent with `search_filings` only (tool set `vector`).
 
-- [ ] **2.1 Dataset model + hand-written seed**
+- [x] **2.1 Dataset model + hand-written seed**
   - Learn: what makes a good eval question; the four categories; `EvalExample` pydantic model.
   - Files: `evals/models.py`, `evals/dataset.jsonl` (~5 hand-written).
   - Verify: loader parses the file.
@@ -274,8 +274,16 @@ sets.
 
 ## M7 — Production extras (detail when reached)
 
-`report` command (cost/latency from `client.runs.query()`; `list_runs` is deprecated), CLI feedback via `create_feedback`,
-promoting thumbs-down runs to the dataset, CI workflow + `baseline.json` + `eval set-baseline`.
+`report` command (cost/latency from `client.runs.query()`; `list_runs` is deprecated), CI
+workflow + `baseline.json` + `eval set-baseline`, and the online evaluation loop (spec §6,
+expanded 2026-10-10):
+- CLI feedback via `create_feedback` (`user_helpful`).
+- Online evaluators in LangSmith: `online_groundedness` (LLM judge) and `online_used_tools`.
+- Automation rules → annotation queue `sec-graphrag-review` (thumbs-down, low judge score,
+  errors).
+- Human review in the queue; `eval promote` pulls reviewed items into `candidates.jsonl`, then
+  the usual review into `dataset.jsonl`.
+- README: setup steps for the LangSmith-side config (rules, queue, evaluators).
 
 ## M8 — README (detail when reached)
 

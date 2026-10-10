@@ -28,7 +28,7 @@ then `+hybrid`), plus a cost/latency table.
 | Neo4j | Existing Neo4j Aura instance (single database), project data namespaced with `:SEC` label |
 | Build approach | Incremental: vector baseline → chat agent → evals → graph → cypher tool → hybrid tool → agent hardening |
 | Eval set | ~60 questions, LLM-drafted from filing text, hand-reviewed |
-| Extras | CI eval regression, cost/latency report, online feedback (prompt hub deferred) |
+| Extras | CI eval regression, cost/latency report, online evaluation loop: user feedback, online evaluators, automation rules, annotation queue, promotion of failures into the dataset (prompt hub deferred) |
 
 ### Non-goals (v1)
 
@@ -96,6 +96,7 @@ sec-graphrag chat                   # multi-turn conversation with the agent (me
 sec-graphrag eval [--tools vector|cypher|hybrid] [--subset ci|full]
 sec-graphrag eval sync              # upload dataset.jsonl to LangSmith
 sec-graphrag eval set-baseline      # explicitly update evals/baseline.json
+sec-graphrag eval promote           # reviewed production traces -> evals/candidates.jsonl
 sec-graphrag report                 # cost/latency tables from LangSmith runs
 sec-graphrag wipe                   # MATCH (n:SEC) DETACH DELETE n (with confirmation)
 ```
@@ -244,6 +245,46 @@ feedback prompt.
 
 ## 6. Evaluation, observability, feedback
 
+### Eval strategy: offline + online (added 2026-10-10)
+
+Two kinds of evaluation, both in LangSmith, linked by traces:
+
+| | Offline evals | Online evals |
+|---|---|---|
+| Runs on | A fixed, versioned dataset against one version of the code | Live `chat` traffic (traces) |
+| Reference answer | Yes (`reference_answer`) | No; nobody knows the right answer yet |
+| Question answered | "Is change B better than A?" Gate before release | "How is it doing now, and where does it fail?" |
+| Signals | `correctness`, `entity_recall`, `groundedness`, `used_tools`, `cypher_ok` | User thumbs up/down, reference-free judges, latency, cost, errors |
+| LangSmith features | Datasets (versions, splits), `evaluate()`, experiments + comparison view | Tracing, feedback, online evaluators, automation rules, annotation queues, add-to-dataset |
+
+The production loop: the offline dataset gates every change in CI → the release serves traffic,
+traced → feedback and online evaluators flag bad answers → a human reviews them, writes the
+correct answer from the filings → they become new offline examples. The dataset starts
+synthetic (cold start, M2) and grows toward real usage (M7).
+
+```
+ dataset.jsonl ──▶ eval in CI ──▶ release ──▶ live traces + feedback + online judges
+      ▲                                                     │
+      └──── human-written reference ◀── review queue ◀──────┘
+```
+
+Principles we follow:
+
+- **Production gives questions, humans give answers.** A reference answer is never the
+  system's own output, or the eval only measures self-agreement.
+- **Curate, don't dump.** Balance categories, over-represent hard and failing cases, drop
+  near-duplicates, strip private data before anything enters git.
+- **Mix deterministic and judge scores.** Code checks (`entity_recall`, `used_tools`) are
+  cheap and stable; LLM judges cover meaning but are noisy, so they are calibrated against
+  hand-checked examples and run with repetitions.
+- **Version everything together.** Dataset in git next to the code; experiments record
+  `git_sha`, models and tool set in metadata so results are reproducible.
+- **Avoid overfitting to the eval set.** Prompt changes are judged on the whole `full` split,
+  not on the few examples that motivated them; promoted production cases keep adding fresh
+  questions.
+- **Refresh when the data changes.** `source_chunks` ties each example to a filing, so a new
+  10-K reveals which references may be stale.
+
 ### Dataset
 
 ~60 questions: lookup 15, multi-hop 25, aggregation 10, thematic 10.
@@ -290,18 +331,43 @@ against Aura. Baseline changes only via `eval set-baseline`.
 metadata: run count, p50/p95 latency, mean tokens, mean cost, error rate, mean Cypher retries;
 plus a per-node breakdown. Outputs Markdown (`reports/`) and CSV.
 
-### Online feedback
+### Online evaluation (production loop; expanded 2026-10-10)
 
-After each `chat` turn, prompt `Helpful? [y/n/skip]` + optional comment →
-`client.create_feedback(run_id, key="user_helpful", score=1|0, comment=...)`, with `run_id`
-preassigned via run config. Notebook `03` lists negatively rated runs and promotes them into
-`dataset.jsonl` as new eval candidates.
+"Production" is `chat` traffic in the LangSmith project. Volume is small, so online evaluators
+sample 100% of root runs (a real deployment would sample, e.g. 5–20%).
+
+1. **Tracing** (done in M1–M1.5): every turn is a trace with tool calls, sources, tokens,
+   latency and cost; sessions grouped as threads.
+2. **User feedback**: after each `chat` turn, prompt `Helpful? [y/n/skip]` + optional comment →
+   `client.create_feedback(run_id, key="user_helpful", score=1|0, comment=...)`, with `run_id`
+   preassigned via run config.
+3. **Online evaluators** (reference-free, run by LangSmith on new traces):
+   - `online_groundedness`: LLM judge, answer vs the excerpts the tools returned in the same
+     trace; reuses the offline `groundedness` prompt.
+   - `online_used_tools`: company-specific answer given without any tool call.
+   Their scores appear as feedback on the trace, next to `user_helpful`.
+4. **Automation rules**: traces with `user_helpful = 0`, `online_groundedness < 1`,
+   `online_used_tools = 0` or a run error are added to the annotation queue
+   `sec-graphrag-review`.
+5. **Annotation queue (human review)**: a reviewer reads each flagged trace, decides whether
+   the answer was wrong, and if so writes the correct answer from the filing text and marks
+   the source chunks.
+6. **Promotion back to offline**: `eval promote` (or notebook `03`) pulls reviewed queue items
+   into `evals/candidates.jsonl`, through the same accept/edit/reject review as LLM-drafted
+   candidates (dedupe, anonymise, keep category balance), then into `dataset.jsonl` and
+   `eval sync`. Git stays the source of truth; nothing is edited only in the LangSmith UI.
+
+Online evaluators, rules and the queue live in LangSmith, not git, so their setup (filters,
+sampling rate, judge prompt) is recorded step by step in the README.
+
+Monitoring: `report` (above) plus LangSmith dashboards show `user_helpful` rate and online
+judge scores over time, split by `tools` metadata, so a drop after a release is visible.
 
 ## 7. Testing
 
 pytest unit tests for deterministic logic only, with no network calls: chunk metadata, Cypher
 safety check, name normalization/alias resolution, agent loop/tool routing with a fake chat model,
-deterministic evaluators, report aggregation. LLM quality is measured by LangSmith evals, not
+deterministic evaluators, report aggregation, promotion of reviewed traces into candidates. LLM quality is measured by LangSmith evals, not
 unit tests.
 
 ## 8. Milestones
@@ -316,7 +382,7 @@ unit tests.
 | M4 | Text2Cypher with safety, validation, retries; exposed as `query_graph` tool | `cypher` tool-set experiment recorded vs `vector` |
 | M5 | Hybrid retriever; exposed as `explore_graph` tool | `hybrid` tool-set experiment recorded |
 | M6 | Agent hardening: tool descriptions, Cypher→vector fallback, guardrails | Full-tool-set experiment recorded vs earlier tool sets |
-| M7 | `report`, CLI feedback, failure promotion, CI workflow + baseline | A PR with a deliberately broken prompt fails CI |
+| M7 | `report`, CLI feedback, online evaluators, automation rules + annotation queue, `eval promote`, CI workflow + baseline | A PR with a deliberately broken prompt fails CI; a thumbs-down `chat` answer reaches the review queue and, once reviewed, `dataset.jsonl` |
 | M8 | README: diagram, results, cost/latency, demo GIF, lessons learned | Understandable in 2 minutes |
 
 ## 9. Risks
@@ -332,3 +398,5 @@ unit tests.
 | Cost overrun | Trial run, caching of extraction output, mini model for extraction |
 | Agent answers company questions from training memory (ungrounded) | Grounding rule in system prompt, general-knowledge label, `used_tools` evaluator |
 | Agent results don't isolate which retrieval method helped | Experiments per tool set (each adds one retriever), plus per-tool usage from traces |
+| Eval set drifts from how the system is really used | Online loop: flagged production traces reviewed and promoted into the dataset |
+| Prompts overfit to the eval set | Judge changes on the whole `full` split; keep adding fresh promoted questions |
