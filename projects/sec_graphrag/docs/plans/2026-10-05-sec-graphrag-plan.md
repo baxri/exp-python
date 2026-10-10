@@ -211,15 +211,23 @@ the agent with `search_filings` only (tool set `vector`).
   - Files: `evals/models.py`, `evals/dataset.jsonl` (~5 hand-written).
   - Verify: loader parses the file.
 
-- [ ] **2.2 LLM drafting of candidates**
+- [x] **2.2 LLM drafting of candidates**
   - Learn: `with_structured_output`, grounding questions in source chunks, avoiding graph bias.
   - Files: `evals/draft.py`.
   - Verify: `evals/candidates.jsonl` with drafted questions.
+  - Done 2026-10-10: `eval draft` drafts from 99 keyword-picked contexts with the judge
+    model -> 115 candidates. A 4-context trial first exposed one-chunk-per-company missing
+    facts in aggregation (now up to 3 per company) and over-long answers/entities.
 
-- [ ] **2.3 Review in notebook**
+- [x] **2.3 Review in notebook** (skipped 2026-10-10)
   - Learn: human-in-the-loop dataset curation.
   - Files: `notebooks/03_eval_analysis.ipynb`.
   - Verify: ~60 accepted examples, balanced by category.
+  - Done differently: for this learning project all candidates are treated as correct;
+    `eval accept` (`evals/review.py`) adds a seeded, balanced sample to reach 15/25/10/10
+    (60 questions incl. the 5 hand-written). Known unreviewed issues: some questions say
+    "excerpts", some `expected_entities` are phrases, aggregation lists not checked for
+    completeness. The notebook review stays the documented production practice (spec §6).
 
 - [ ] **2.4 Sync to LangSmith**
   - Learn: datasets, examples, splits (`ci`, `full`), dataset versions.

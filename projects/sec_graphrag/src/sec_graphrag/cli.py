@@ -202,12 +202,98 @@ def chat() -> None:
         wait_for_all_tracers()  # send traces before the program exits
 
 
-@app.command(name="eval")
+# `eval` is a group: `eval` alone runs an experiment, `eval draft` etc. are steps
+# for building the dataset.
+eval_app = typer.Typer(help="Build the eval dataset and run evaluation experiments.")
+app.add_typer(eval_app, name="eval")
+
+
+@eval_app.callback(invoke_without_command=True)
 def eval_(
+    ctx: typer.Context,
     subset: Annotated[Subset, typer.Option(help="Dataset split to run.")] = Subset.full,
 ) -> None:
     """Run a LangSmith evaluation experiment."""
-    _todo("2.7")
+    if ctx.invoked_subcommand is None:
+        _todo("2.7")
+
+
+@eval_app.command()
+def draft(
+    workers: Annotated[int, typer.Option(help="Parallel LLM calls.")] = 8,
+) -> None:
+    """Draft candidate eval questions from the filings into candidates.jsonl."""
+    from sec_graphrag.config import get_settings
+    from sec_graphrag.tracing import configure_langsmith
+
+    settings = get_settings()
+    configure_langsmith(settings)
+
+    from collections import Counter
+
+    from langchain_core.tracers.langchain import wait_for_all_tracers
+    from langchain_openai import ChatOpenAI
+
+    from sec_graphrag.evals.draft import (
+        CANDIDATES_PATH,
+        all_jobs,
+        draft_all,
+        load_chunks,
+    )
+
+    # The stronger judge model drafts: better questions, few calls.
+    llm = ChatOpenAI(model=settings.judge_model, api_key=settings.openai_api_key)
+    jobs = all_jobs(load_chunks())
+    typer.echo(f"Drafting from {len(jobs)} contexts with {settings.judge_model}...")
+
+    counts: Counter[str] = Counter()
+    failed = 0
+    try:
+        with CANDIDATES_PATH.open("w", encoding="utf-8") as out:
+            for done, result in enumerate(draft_all(jobs, llm, workers), start=1):
+                if isinstance(result, Exception):
+                    failed += 1
+                    typer.secho(f"  failed: {result}", fg=typer.colors.RED)
+                    continue
+                for example in result:
+                    out.write(example.model_dump_json() + "\n")
+                    counts[example.category] += 1
+                if done % 10 == 0:
+                    typer.echo(f"  {done}/{len(jobs)} contexts done")
+    finally:
+        wait_for_all_tracers()
+
+    for category, count in sorted(counts.items()):
+        typer.echo(f"  {category:<12} {count}")
+    typer.secho(
+        f"{counts.total()} candidates -> {CANDIDATES_PATH.name}"
+        + (f" ({failed} contexts failed)" if failed else ""),
+        fg=typer.colors.GREEN,
+    )
+
+
+@eval_app.command()
+def accept() -> None:
+    """Add a balanced sample of candidates to dataset.jsonl (review skipped)."""
+    from collections import Counter
+
+    from sec_graphrag.evals.draft import CANDIDATES_PATH
+    from sec_graphrag.evals.models import DATASET_PATH, load_dataset
+    from sec_graphrag.evals.review import TARGETS, pick_balanced
+
+    dataset = load_dataset(DATASET_PATH)
+    picked = pick_balanced(dataset, load_dataset(CANDIDATES_PATH))
+    with DATASET_PATH.open("a", encoding="utf-8") as out:
+        for example in picked:
+            out.write(example.model_dump_json() + "\n")
+
+    counts = Counter(e.category for e in [*dataset, *picked])
+    for category, target in TARGETS.items():
+        typer.echo(f"  {category:<12} {counts[category]:>3} / {target}")
+    typer.secho(
+        f"Added {len(picked)} -> {DATASET_PATH.name} ({counts.total()} questions)",
+        fg=typer.colors.GREEN,
+    )
 
 
 @app.command()
