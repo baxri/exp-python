@@ -9,6 +9,11 @@ Python playground project managed with `uv`.
   a stub function. The user solves them by hand; Claude should not solve the task
   or fill in the implementation unless explicitly asked to.
 
+- `projects/<name>/` — portfolio projects (uv workspace members). Each project keeps
+  its own design docs: specs in `projects/<name>/docs/specs/` and implementation
+  plans in `projects/<name>/docs/plans/` (not the superpowers default
+  `docs/superpowers/...`).
+
 ## Code style
 
 - Project requires Python >= 3.12. Use built-in generic types (`list[int]`,
