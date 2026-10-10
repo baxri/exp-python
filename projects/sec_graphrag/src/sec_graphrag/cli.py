@@ -296,6 +296,25 @@ def accept() -> None:
     )
 
 
+@eval_app.command()
+def sync() -> None:
+    """Upload dataset.jsonl to the LangSmith dataset (adds, updates, deletes)."""
+    from sec_graphrag.config import get_settings
+    from sec_graphrag.tracing import configure_langsmith
+
+    configure_langsmith(get_settings())  # exports the LangSmith API key
+
+    from sec_graphrag.evals.models import load_dataset
+    from sec_graphrag.evals.sync import DATASET_NAME, sync
+
+    plan = sync(load_dataset())
+    typer.secho(
+        f"{DATASET_NAME}: {len(plan.create)} created, {len(plan.update)} updated, "
+        f"{len(plan.delete)} deleted, {plan.unchanged} unchanged",
+        fg=typer.colors.GREEN,
+    )
+
+
 @app.command()
 def report() -> None:
     """Summarize cost and latency per experiment from LangSmith runs."""

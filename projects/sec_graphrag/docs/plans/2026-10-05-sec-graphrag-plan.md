@@ -229,7 +229,7 @@ the agent with `search_filings` only (tool set `vector`).
     "excerpts", some `expected_entities` are phrases, aggregation lists not checked for
     completeness. The notebook review stays the documented production practice (spec §6).
 
-- [ ] **2.4 Sync to LangSmith**
+- [x] **2.4 Sync to LangSmith**
   - Learn: datasets, examples, splits (`ci`, `full`), dataset versions.
   - Files: `evals/sync.py`, `cli.py` (`eval sync`).
   - Verify: dataset visible in LangSmith with both splits.
