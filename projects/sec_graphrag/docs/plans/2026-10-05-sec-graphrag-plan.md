@@ -193,11 +193,13 @@ A.6; evals compare agent tool sets instead.)
     `Strategy` enum, `eval --strategy`, `tests/test_qa.py`, `tests/test_answer.py`.
   - Verify: `uv run pytest` green; `sec-graphrag --help` lists no `ask`.
 
-- [ ] **A.7 Tests for the agent loop**
-  - Learn: faking a tool-calling model so the graph's routing is tested without OpenAI.
+- [x] **A.7 Tests for the agent loop**
+  - Learn: faking a tool-calling model so the graph's routing is tested without OpenAI;
+    `bind(tool_choice=...)` as a RunnableBinding so the fake records which binding was used.
   - Files: `tests/test_agent.py`.
-  - Verify: tool-call path, direct-answer path, search budget and chat events (tokens,
-    searches, sources rebuilt from checkpointed dicts) covered; `uv run pytest` green.
+  - Verify: tool-call path, direct-answer path and search budget covered; `uv run pytest`
+    green. Chat event tests (tokens, searches, sources rebuilt from checkpointed dicts)
+    deferred on 2026-10-10 to move on to evals.
 
 ## M2 — Eval set + first experiment
 
