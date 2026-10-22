@@ -11,3 +11,8 @@ wheels/
 
 # Environment variables
 .env
+
+# Hybrid retrieval: downloaded dataset and built indexes (regenerate with
+# data/download.py, bm25.py, embeding.py; embeddings.npy exceeds GitHub's limit)
+hybrid_retrieval/data/fiqa/
+hybrid_retrieval/indexes/
